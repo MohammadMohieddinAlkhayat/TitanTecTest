@@ -60,14 +60,15 @@ namespace TitanTecTest.API
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "TitanTecTest.API", Version = "v1" });
             });
-            services.AddCors(options =>
+
+            services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
             {
-                options.AddPolicy(name: MyAllowSpecificOrigins,
-                                  policy =>
-                                  {
-                                      policy.WithOrigins("http://localhost:3000/");
-                                  });
-            });
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            }));
+
+           
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -83,6 +84,8 @@ namespace TitanTecTest.API
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseCors("MyPolicy");
 
             app.UseAuthorization();
 
