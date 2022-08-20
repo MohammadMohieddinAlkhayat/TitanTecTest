@@ -94,24 +94,31 @@ namespace TitanTecTest.BL.Services.Employees
                     foreach (EmployeeFile file in employee.Files)
                     {
                         
-                        if (File.Exists(Path.Combine(AppConst.ContentFolder, file.Name.Replace(AppConst.FileSiteURL, ""))))
+                        foreach(var NewFile in files)
                         {
-                            File.Delete(Path.Combine(AppConst.ContentFolder, file.Name.Replace(AppConst.FileSiteURL, "")));
+                            if(file.Name.Replace(AppConst.FileSiteURL, "") != NewFile.Replace(AppConst.FileSiteURL, ""))
+                            {
+                                var employeeFile = new EmployeeFile()
+                                {
+                                    Name = NewFile,
+                                    FileSize = OtherServices.FileService.CalculteFileSize(NewFile),
+                                    EmployeeId = employee.Id
+
+                                };
+                                UnitOfWork.EmployeeFileRepository.Insert(employeeFile);
+                            }
+
                         }
-                        UnitOfWork.EmployeeFileRepository.Delete(file);
+
+                        
+                        //if (File.Exists(Path.Combine(AppConst.ContentFolder, file.Name.Replace(AppConst.FileSiteURL, ""))))
+                        //{
+                        //    File.Delete(Path.Combine(AppConst.ContentFolder, file.Name.Replace(AppConst.FileSiteURL, "")));
+                        //}
+                        //UnitOfWork.EmployeeFileRepository.Delete(file);
                     }
                 }
-                foreach (var file in files)
-                {
-                    var employeeFile = new EmployeeFile()
-                    {
-                        Name = file,
-                        FileSize = OtherServices.FileService.CalculteFileSize(file),
-                        EmployeeId = employee.Id
-
-                    };
-                    UnitOfWork.EmployeeFileRepository.Insert(employeeFile);
-                }
+               
                 UnitOfWork.EmployeeRepository.Update(employee);
                 UnitOfWork.SaveAllChanges();
                 return await Task.FromResult(true);
