@@ -26,6 +26,7 @@ namespace TitanTecTest.API
 {
     public class Startup
     {
+        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
         private static IMapper _mapper = new MapperConfiguration(mc =>
         {
             mc.AddProfile(new ModelAutoMapperProfile());
@@ -58,6 +59,14 @@ namespace TitanTecTest.API
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "TitanTecTest.API", Version = "v1" });
+            });
+            services.AddCors(options =>
+            {
+                options.AddPolicy(name: MyAllowSpecificOrigins,
+                                  policy =>
+                                  {
+                                      policy.WithOrigins("http://localhost:3000/");
+                                  });
             });
         }
 
