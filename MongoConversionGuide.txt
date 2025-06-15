@@ -1,0 +1,109 @@
+MongoDB Conversion Guide
+========================
+
+This document summarizes the steps for converting the existing Entity Framework Core class diagram to MongoDB along with example code snippets and recommendations.
+
+1. Install MongoDB.Driver package:
+
+   ```bash
+   dotnet add package MongoDB.Driver
+   ```
+
+2. Create a MongoDB context to manage collections:
+
+   ```csharp
+   using MongoDB.Driver;
+
+   public class ECommerceMongoContext
+   {
+       private readonly IMongoDatabase _database;
+
+       public ECommerceMongoContext(string connectionString, string databaseName)
+       {
+           var client = new MongoClient(connectionString);
+           _database = client.GetDatabase(databaseName);
+       }
+
+       public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
+       public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
+       public IMongoCollection<Vendor> Vendors => _database.GetCollection<Vendor>("Vendors");
+       // ... add other collections as needed
+   }
+   ```
+
+3. Define document models using `[BsonId]` and `[BsonRepresentation]`:
+
+   ```csharp
+   using MongoDB.Bson;
+   using MongoDB.Bson.Serialization.Attributes;
+
+   public class User
+   {
+       [BsonId]
+       [BsonRepresentation(BsonType.ObjectId)]
+       public string Id { get; set; }
+
+       public string FullName { get; set; }
+       public string Email { get; set; }
+       // additional fields ...
+       public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+   }
+
+   public class Customer
+   {
+       [BsonId]
+       [BsonRepresentation(BsonType.ObjectId)]
+       public string Id { get; set; }
+
+       public string UserId { get; set; }
+       public int LoyaltyPoints { get; set; }
+       public List<PaymentMethod> SavedPaymentMethods { get; set; } = new List<PaymentMethod>();
+       public List<string> OrderIds { get; set; } = new List<string>();
+   }
+
+   public class Order
+   {
+       [BsonId]
+       [BsonRepresentation(BsonType.ObjectId)]
+       public string Id { get; set; }
+
+       public string CustomerId { get; set; }
+       public string ReceiverId { get; set; }
+       public OrderStatus OrderStatus { get; set; }
+       public List<OrderItem> Items { get; set; } = new List<OrderItem>();
+       public decimal TotalAmount { get; set; }
+       public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+   }
+   ```
+
+4. Example repository pattern:
+
+   ```csharp
+   public class CustomerRepository
+   {
+       private readonly IMongoCollection<Customer> _collection;
+
+       public CustomerRepository(ECommerceMongoContext context)
+       {
+           _collection = context.Customers;
+       }
+
+       public Task<List<Customer>> GetAllAsync() =>
+           _collection.Find(_ => true).ToListAsync();
+
+       public Task<Customer> GetByIdAsync(string id) =>
+           _collection.Find(c => c.Id == id).FirstOrDefaultAsync();
+
+       public Task CreateAsync(Customer customer) =>
+           _collection.InsertOneAsync(customer);
+
+       // implement Update, Delete, etc.
+   }
+   ```
+
+5. Recommendations
+   - Embed small, frequently accessed sub-documents (e.g., notifications in the user document).
+   - Reference large collections (e.g., orders for a customer) by storing IDs.
+   - Plan indexes on commonly queried fields such as email or created dates.
+   - Design operations to avoid multi-document transactions when possible.
+   - Consider schema validation to ensure data integrity.
